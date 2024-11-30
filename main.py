@@ -4,13 +4,33 @@ from fastapi import FastAPI
 import dotenv
 import os
 
+from fastapi import FastAPI, Depends
+from fastapi.security import OAuth2PasswordRequestForm
+from auth import login, get_current_user
+from models import Token, UserInDB
+
+# Load environment variables from.env file
+dotenv.load_dotenv()
+
+app = FastAPI()
+
+
+@app.post("/token", response_model=Token)
+async def login_for_access_token(
+        form_data: OAuth2PasswordRequestForm = Depends()):
+    return await login(form_data)
+
+
+@app.get("/users/me", response_model=UserInDB)
+async def read_users_me(current_user: UserInDB = Depends(get_current_user)):
+    return current_user
+
+
 # Load environment variables from.env file
 dotenv.load_dotenv()
 
 # key from OpenWeather API
 API_KEY = os.getenv("OPENAI_API_KEY")
-
-app = FastAPI()
 
 
 def read_root():
@@ -20,7 +40,7 @@ def read_root():
 @app.get("/weather/{city}")
 def get_weather(city: str):
     api_key = API_KEY
-    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}"
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
     response = requests.get(url)
     return response.json()
 
