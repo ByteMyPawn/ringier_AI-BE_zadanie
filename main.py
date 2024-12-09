@@ -1,59 +1,17 @@
-import requests
-import openai
+
 from fastapi import FastAPI
-import dotenv
-import os
-
-from fastapi import FastAPI, Depends
-from fastapi.security import OAuth2PasswordRequestForm
-from auth import login, get_current_user
-from models import Token, UserInDB
-
-# Load environment variables from.env file
-dotenv.load_dotenv()
+from routes.auth_routes import router as auth_router
+from routes.login import router as login
+from routes.weather_city import router as get_weather
+from routes.signup import router as signup_router
 
 app = FastAPI()
 
-
-@app.post("/token", response_model=Token)
-async def login_for_access_token(
-        form_data: OAuth2PasswordRequestForm = Depends()):
-    return await login(form_data)
-
-
-@app.get("/users/me", response_model=UserInDB)
-async def read_users_me(current_user: UserInDB = Depends(get_current_user)):
-    return current_user
-
-
-# Load environment variables from.env file
-dotenv.load_dotenv()
-
-# key from OpenWeather API
-API_KEY = os.getenv("OPENAI_API_KEY")
+app.include_router(auth_router)
+app.include_router(login)
+app.include_router(get_weather)
+app.include_router(signup_router)
 
 
 def read_root():
     return {"message": "Welcome to the Weather API!"}
-
-
-@app.get("/weather/{city}")
-def get_weather(city: str):
-    api_key = API_KEY
-    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
-    response = requests.get(url)
-    return response.json()
-
-
-@app.post("/generate-article/")
-def generate_article(data: dict):
-    weather_data = data["weather_data"]
-    style = data["style"]  # "factual" or "dramatic"
-
-    prompt = f"Generate a {style} weather article: {weather_data}"
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=prompt,
-        max_tokens=300
-    )
-    return {"article": response.choices[0].text.strip()}
