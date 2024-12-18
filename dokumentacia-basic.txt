@@ -1,0 +1,22 @@
+endpointy ->
+get /users/me -> vráti o mne údaje
+get /users/me/preferences
+put /users/me/preferences -> zmena defaultneho jazyka a stylu 
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsImV4cCI6MTczNDAzOTgwMn0.EjBPyFCWJc5r4ky3b3kaxsV8ReshIdVCPRUD3D4SJS8
+
+users:
+user1 user2 user3: securepassword
+superusers:
+superuser1: supersecurepassword
+
+
+/users post -> create new user (only for superuser)
+
+{"username": "superuser1", "password": "supersecurepassword", "email": "superuser1@example.com", "role": "superuser"}
+
+/users -> delete user (only for superuser) a superuser to nevie robit druhemu
+
+{username: } or {email: }
+
+

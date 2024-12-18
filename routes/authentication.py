@@ -3,8 +3,11 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import requests
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, HTTPException, status, Depends
+from pydantic import BaseModel
 from dotenv import load_dotenv, set_key
+from auth import authenticate_user, create_access_token
+from models import Token
 from auth import get_current_user, UserInDB
 #fmt: on
 
@@ -21,9 +24,23 @@ router = APIRouter()
 host = os.getenv("HOST_ADDRESS")
 
 
-@router.get("/login")
-def example_route(current_user: UserInDB = Depends(get_current_user)):
-    return {"message": f"Login successful for username: {current_user.username}"}
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+@router.post("/login", response_model=Token)
+async def login_for_access_token(login_request: LoginRequest):
+    user = authenticate_user(login_request.username, login_request.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token = create_access_token(
+        data={"sub": user.username, "role": user.role})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 def login(username, password):
@@ -96,9 +113,3 @@ def login(username, password):
         except requests.exceptions.JSONDecodeError:
             print("Response is not in JSON format.")
         return False
-
-
-if __name__ == "__main__":
-    print(f"Username: {username}")
-    print(f"Password: {password}")
-    login(username, password)

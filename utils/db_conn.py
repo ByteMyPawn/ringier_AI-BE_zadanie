@@ -23,4 +23,21 @@ def get_db_connection():
         host=host,
         port="5432"
     )
+
+    conn.set_client_encoding('UTF8')
+
     return conn
+
+
+# conn = get_db_connection()
+
+# cursor = conn.cursor()
+
+# cursor.execute(
+#     "SELECT key_name, translation FROM translations WHERE language_code = 'SK';")
+# translations = {str(key): str(value)
+#                 for key, value in cursor.fetchall()}
+# print(translations)
+
+# cursor.close()
+# conn.close()

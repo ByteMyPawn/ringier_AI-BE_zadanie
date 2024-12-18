@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class Token(BaseModel):
@@ -7,13 +7,23 @@ class Token(BaseModel):
     token_type: str
 
 
-class TokenData(BaseModel):
-    username: Optional[str] = None
-
-
 class User(BaseModel):
     username: str
 
 
 class UserInDB(User):
-    hashed_password: str  # This is what is stored in the database
+    hashed_password: str
+    preferred_language: dict
+    preferred_style: dict
+    role: str
+
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    email: EmailStr
+
+
+class UserDeleteRequest(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None

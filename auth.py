@@ -30,14 +30,30 @@ def get_user(username: str) -> Optional[UserInDB]:
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT username, hashed_password FROM users WHERE username = %s", (username,))
+        """
+        SELECT u.username, u.hashed_password, u.role, l.id AS preferred_language_id, l.name AS preferred_language_name, l.code AS preferred_language_code,
+               s.id AS preferred_style_id, s.name AS preferred_style_name
+        FROM users u
+        LEFT JOIN languages l ON u.preferred_language_id = l.id
+        LEFT JOIN styles s ON u.preferred_style_id = s.id
+        WHERE u.username = %s
+        """, (username,))
+
     user_record = cursor.fetchone()
     cursor.close()
     conn.close()
 
     if user_record:
         return UserInDB(
-            username=user_record[0], hashed_password=user_record[1])
+            username=user_record[0],
+            hashed_password=user_record[1],
+            role=user_record[2],  # Include the role here
+            preferred_language={
+                "id": user_record[3],
+                "name": user_record[4],
+                "code": user_record[5]},
+            preferred_style={"id": user_record[6], "name": user_record[7]}
+        )
     return None
 
 
@@ -49,11 +65,12 @@ def authenticate_user(username: str, password: str):
     return user
 
 
-def create_access_token(data: dict) -> str:
+def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
 
 def verify_token(token: str = Depends(oauth2_scheme)) -> UserInDB:
@@ -70,7 +87,7 @@ def verify_token(token: str = Depends(oauth2_scheme)) -> UserInDB:
         user = get_user(username)
         if user is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User not found",
             )
         return user
@@ -113,7 +130,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
         user = get_user(username)
         if user is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User not found",
             )
         return user
