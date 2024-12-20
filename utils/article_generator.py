@@ -24,7 +24,7 @@ class WeatherArticle:
         # Construct the query with language and request a dictionary format
         query = (
             f"Generate a {self.style} weather forecast article for tommorow in {self.language_name} ({self.language_code}) language. Style description: {self.style_description}. "
-            f"with a title, lead, and body based on the following data: {self.weather_data}. "
+            f"with a title, lead, and body based on the following data: {self.weather_data}. Use degrees rounded without decimals and wind direction in cardinal directions) "
             "Return the response as a JSON-like dictionary with keys 'title' (maximum 160 characters), 'lead' (minimum 160 characters), and 'body' (minimum 500 characters)."
         )
 

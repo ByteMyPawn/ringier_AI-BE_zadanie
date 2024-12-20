@@ -1,3 +1,5 @@
+import os
+import dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -8,6 +10,9 @@ from routes.user_management import router as users_router
 from routes.user_settings import router as preferences_router
 from routes.content_generation import router as generate_article_router
 from routes.general import router as general_router
+
+dotenv.load_dotenv()
+host_address = os.getenv("HOST_ADDRESS")
 
 app = FastAPI()
 
@@ -35,6 +40,6 @@ async def not_found_handler(request: Request, exc):
     return JSONResponse(
         status_code=404,
         content={
-            "message": "The requested resource was not found. Please check the URL or visit /help for more information."
+            "message": f"The requested resource was not found. Please check the URL or visit {host_address}:8000/docs for more information."
         },
     )

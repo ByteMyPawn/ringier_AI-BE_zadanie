@@ -7,19 +7,19 @@ from utils.language_utils import get_user_preferred_language, validate_language_
 from timezonefinder import TimezoneFinder
 import pytz
 import dotenv
-from fastapi.responses import JSONResponse
-import requests
-from datetime import datetime, timedelta
 from fastapi import APIRouter, Query, Depends, HTTPException
+from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordBearer
+import requests
+from datetime import datetime
 import json
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 #fmt: on
 
 tf = TimezoneFinder()
 
 router = APIRouter()
-security = HTTPBearer()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 os.environ.pop("POSTGRES_USER", None)
 os.environ.pop("POSTGRES_PASSWORD", None)
@@ -86,15 +86,15 @@ def try_request_openWeather_api(url):
         )
 
 
-@router.get("/weather/{city}")
+@router.get("/weather/{city}", include_in_schema=False)
 def get_weather(
     city: str,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    token: str = Depends(oauth2_scheme)
 ):
     # Decode the JWT token to get the username
     try:
         token_data = jwt.decode(
-            credentials.credentials,
+            token,
             os.getenv("SECRET_KEY"),
             algorithms=["HS256"]
         )
@@ -108,14 +108,15 @@ def get_weather(
     return try_request_openWeather_api(url)
 
 
-@router.get("/weather/{city}/{date}")
+@router.get("/weather/{city}/{date}", tags=["Main functions"],
+            summary="Get weather history for a specific date")
 def get_weather_history(
         city: str, date: str, lang: str = Query(None, max_length=2),
-        credentials: HTTPAuthorizationCredentials = Depends(security)):
+        token: str = Depends(oauth2_scheme)):
     # Decode the JWT token to get the username
     try:
         token_data = jwt.decode(
-            credentials.credentials,
+            token,
             os.getenv("SECRET_KEY"),
             algorithms=["HS256"])
         # Assuming 'sub' contains the username
@@ -146,9 +147,6 @@ def get_weather_history(
             "SELECT value_name, translation FROM value_translations WHERE language_code = %s", (lang,))
         value_translations = {str(original): str(translated)
                               for original, translated in cursor.fetchall()}
-
-    cursor.close()
-    conn.close()
 
     # Parse the date string
     try:

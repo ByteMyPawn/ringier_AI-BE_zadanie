@@ -3,12 +3,11 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import requests
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from dotenv import load_dotenv, set_key
 from auth import authenticate_user, create_access_token
 from models import Token
-from auth import get_current_user, UserInDB
 #fmt: on
 
 os.environ.pop("USERNAME", None)
@@ -29,7 +28,7 @@ class LoginRequest(BaseModel):
     password: str
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, tags=["General"], summary="Login")
 async def login_for_access_token(login_request: LoginRequest):
     user = authenticate_user(login_request.username, login_request.password)
     if not user:

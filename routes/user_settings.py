@@ -1,7 +1,6 @@
-import logging
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from auth import verify_token
+from auth import verify_token, get_current_user
 from models import UserInDB
 from utils.db_conn import get_db_connection
 from typing import Optional
@@ -14,7 +13,8 @@ class PreferencesUpdate(BaseModel):
     preferred_style: Optional[str] = None
 
 
-@router.put("/users/me/preferences")
+@router.put("/users/me/preferences",
+            tags=["User preferences"], summary="Update prefered settings")
 def update_preferences(preferences: PreferencesUpdate = None,
                        current_user: UserInDB = Depends(verify_token)):
     conn = get_db_connection()
@@ -107,9 +107,7 @@ def update_preferences(preferences: PreferencesUpdate = None,
     }
 
 
-@router.get("/users/me/preferences")
-def get_preferences(current_user: UserInDB = Depends(verify_token)):
-    return {
-        "preferred_language": current_user.preferred_language,
-        "preferred_style": current_user.preferred_style
-    }
+@router.get("/users/me", response_model=UserInDB,
+            tags=["User preferences"], summary="Check user's current settings")
+async def read_users_me(current_user: UserInDB = Depends(get_current_user)):
+    return current_user

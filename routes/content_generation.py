@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 import os
 import dotenv
@@ -9,22 +9,25 @@ from utils.language_utils import get_user_preferred_language, validate_language_
 from utils.style_utils import get_user_preferred_style, validate_style_input
 
 router = APIRouter()
-security = HTTPBearer()
 dotenv.load_dotenv()
 host = os.getenv("HOST_ADDRESS")
 
+# Use OAuth2PasswordBearer to extract the token
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-@router.get("/generate-forecast/{city}")
+
+@router.get("/generate-forecast/{city}", tags=["Main functions"],
+            summary="Generate weather forecast article for tomorrow")
 def generate_article(
     city: str,
     style: str = Query(None),
     lang: str = Query(None, max_length=2),
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    token: str = Depends(oauth2_scheme)
 ):
     # Decode the JWT token to get the username
     try:
         token_data = jwt.decode(
-            credentials.credentials,
+            token,
             os.getenv("SECRET_KEY"),
             algorithms=["HS256"]
         )
@@ -47,7 +50,7 @@ def generate_article(
     style_description = style_info[style]
     # Call the existing weather endpoint
     weather_response = requests.get(f"http://{host}:8000/weather/{city}", headers={
-        "Authorization": f"Bearer {credentials.credentials}"
+        "Authorization": f"Bearer {token}"
     })
 
     if weather_response.status_code != 200:

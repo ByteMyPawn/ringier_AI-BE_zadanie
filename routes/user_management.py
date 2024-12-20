@@ -3,12 +3,10 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from fastapi import APIRouter, HTTPException, status, Depends, Body
-from pydantic import BaseModel, EmailStr
 from utils.db_conn import get_db_connection
 from passlib.context import CryptContext
 from auth import verify_token
 from models import UserInDB, UserCreate, UserDeleteRequest
-from typing import Optional
 
 #fmt: on
 router = APIRouter()
@@ -27,7 +25,8 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 
-@router.post("/users", status_code=status.HTTP_201_CREATED)
+@router.post("/users", status_code=status.HTTP_201_CREATED,
+             tags=["User management"], summary="Create User (SuperUser Only)")
 def signup(user: UserCreate, current_user: UserInDB = Depends(verify_token)):
     if not is_superuser(current_user):
         raise HTTPException(
@@ -68,13 +67,17 @@ def signup(user: UserCreate, current_user: UserInDB = Depends(verify_token)):
     return {"message": f"User '{user.username}' created successfully"}
 
 
-@router.delete("/users", status_code=status.HTTP_200_OK)
+@router.delete("/users", status_code=status.HTTP_200_OK,
+               tags=["User management"], summary="Remove User (SuperUser Only)")
 def delete_user(
     user_info: UserDeleteRequest = Body(...),
     current_user: UserInDB = Depends(verify_token)
 ):
     username = user_info.username
     email = user_info.email
+    user_info_dict = {
+        k: v for k, v in user_info.dict().items() if v is not None
+    }
 
     if not is_superuser(current_user):
         raise HTTPException(
@@ -108,7 +111,7 @@ def delete_user(
         conn.close()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"User with: {user_info} not found in database"
+            detail=f"User with: {user_info_dict} not found in database"
         )
 
     if user_role[0] == "superuser":
@@ -134,4 +137,4 @@ def delete_user(
     cursor.close()
     conn.close()
 
-    return {"message": f"User {user_info} deleted successfully"}
+    return {"message": f"User {user_info_dict} deleted successfully"}
