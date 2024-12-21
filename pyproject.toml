@@ -7,6 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+uvicorn = "^0.32.1"
 requests = "^2.32.3"
 openai = "^1.55.3"
 fastapi = "^0.115.5"
@@ -19,10 +20,14 @@ bcrypt = "^4.2.1"
 pytest = "^8.3.4"
 httpx = "^0.28.1"
 pytest-asyncio = "^0.25.0"
+pydantic = {version = "^1.10.2", extras = ["email"]}
+psycopg2-binary = "^2.9.6"
+timezonefinder = "^6.5.7"
+pytz = "^2024.2"
 
 
 [tool.poetry.group.dev.dependencies]
-uvicorn = "^0.32.1"
+
 
 [build-system]
 requires = ["poetry-core"]

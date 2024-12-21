@@ -13,11 +13,12 @@ dotenv.load_dotenv()
 def get_db_connection():
     postgres_user = os.getenv("POSTGRES_USER")
     postgres_password = os.getenv("POSTGRES_PASSWORD")
-    host = os.getenv("HOST_ADDRESS")
+    postgres_db = os.getenv("POSTGRES_DB")
+    host = os.getenv("POSTGRES_HOST")
 
     # Database connection parameters
     conn = psycopg2.connect(
-        dbname="weather_db",
+        dbname=postgres_db,
         user=postgres_user,
         password=postgres_password,
         host=host,

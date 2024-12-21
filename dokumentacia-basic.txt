@@ -1,5 +1,3 @@
-for help go /docs
-
 TBD: AWS nasadenie, CI/cd 
 
 test naporu

@@ -21,16 +21,7 @@ tf = TimezoneFinder()
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-os.environ.pop("POSTGRES_USER", None)
-os.environ.pop("POSTGRES_PASSWORD", None)
-
 dotenv.load_dotenv()
-
-postgres_user = os.getenv("POSTGRES_USER")
-
-postgres_password = os.getenv("POSTGRES_PASSWORD")
-
-host = os.getenv("HOST_ADDRESS")
 
 # Database connection parameters
 conn = get_db_connection()
@@ -135,19 +126,6 @@ def get_weather_history(
     # Validate the language input
     validate_language_input(lang)
 
-    # Query the translations table for the given language code if not "EN"
-    key_translations = {}
-    value_translations = {}
-    if lang != "EN":
-        cursor.execute(
-            "SELECT key_name, translation FROM key_translations WHERE language_code = %s", (lang,))
-        key_translations = {str(key): str(value)
-                            for key, value in cursor.fetchall()}
-        cursor.execute(
-            "SELECT value_name, translation FROM value_translations WHERE language_code = %s", (lang,))
-        value_translations = {str(original): str(translated)
-                              for original, translated in cursor.fetchall()}
-
     # Parse the date string
     try:
         date_obj = datetime.strptime(date, "%d-%m-%Y")
@@ -172,65 +150,77 @@ def get_weather_history(
             status_code=400,
             detail={"error": "Date must be on or before yesterday."})
 
-    # Check if the weather data is already in the database
     conn = get_db_connection()
     cursor = conn.cursor()
+    try:
+        # Query the translations table for the given language code if not "EN"
+        key_translations = {}
+        value_translations = {}
+        if lang != "EN":
+            cursor.execute(
+                "SELECT key_name, translation FROM key_translations WHERE language_code = %s", (lang,))
+            key_translations = {str(key): str(value)
+                                for key, value in cursor.fetchall()}
+            cursor.execute(
+                "SELECT value_name, translation FROM value_translations WHERE language_code = %s", (lang,))
+            value_translations = {str(original): str(translated)
+                                  for original, translated in cursor.fetchall()}
 
-    cursor.execute(
-        "SELECT weather_data FROM weather_history WHERE city_id = (SELECT id FROM supported_cities WHERE LOWER(name) = %s) AND date = %s",
-        (city.lower(), date_obj))
-    result = cursor.fetchone()
+        # Check if the weather data is already in the database
+        cursor.execute(
+            "SELECT weather_data FROM weather_history WHERE city_id = (SELECT id FROM supported_cities WHERE LOWER(name) = %s) AND date = %s",
+            (city.lower(), date_obj))
+        result = cursor.fetchone()
 
-    if result:
-        # Data found in the database, return it
-        weather_data = result[0]
+        if result:
+            # Data found in the database, return it
+            weather_data = result[0]
+
+        else:
+            # Determine the timezone based on the latitude and longitude
+            timezone_str = tf.timezone_at(lat=lat, lng=lon)
+
+            if not timezone_str:
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "error": "Could not determine timezone for the given coordinates."})
+
+            timezone = pytz.timezone(timezone_str)
+
+            # Set the time to 12:00:00 and localize to the city's timezone
+            date_obj = timezone.localize(
+                date_obj.replace(
+                    hour=12, minute=0, second=0))
+
+            # Convert to Unix timestamp
+            unixtime = int(date_obj.timestamp())
+
+            # Construct the URL with the calculated unixtime
+            url = f"https://api.openweathermap.org/data/3.0/onecall/timemachine?lat={lat}&lon={lon}"
+            url += f"&dt={unixtime}"
+            url += f"&appid={API_KEY}"
+            url += "&units=metric"
+            response = try_request_openWeather_api(url)
+
+            if isinstance(response, dict):
+                # Store the response in the database
+                response_json = json.dumps(response)
+                cursor.execute(
+                    "INSERT INTO weather_history (city_id, date, weather_data) VALUES ((SELECT id FROM supported_cities WHERE id = %s), %s, %s)",
+                    (city_id, date_obj, response_json))
+                conn.commit()
+
+            weather_data = response
+
+        # Replace keys in the response with translations if lang is not "EN"
+        if lang != "EN" and isinstance(weather_data, dict):
+            weather_data = translate_response(
+                weather_data, key_translations, value_translations)
+
+    finally:
         cursor.close()
         conn.close()
-    else:
-
-        # Determine the timezone based on the latitude and longitude
-        timezone_str = tf.timezone_at(lat=lat, lng=lon)
-
-        if not timezone_str:
-            raise HTTPException(
-                status_code=500,
-                detail={
-                    "error": "Could not determine timezone for the given coordinates."})
-
-        timezone = pytz.timezone(timezone_str)
-
-        # Set the time to 12:00:00 and localize to the city's timezone
-        date_obj = timezone.localize(
-            date_obj.replace(
-                hour=12, minute=0, second=0))
-
-        # Convert to Unix timestamp
-        unixtime = int(date_obj.timestamp())
-
-        # Construct the URL with the calculated unixtime
-        url = f"https://api.openweathermap.org/data/3.0/onecall/timemachine?lat={lat}&lon={lon}"
-        url += f"&dt={unixtime}"
-        url += f"&appid={API_KEY}"
-        url += "&units=metric"
-        response = try_request_openWeather_api(url)
-
-        if isinstance(response, dict):
-            # Store the response in the database
-            response_json = json.dumps(response)
-            cursor.execute(
-                "INSERT INTO weather_history (city_id, date, weather_data) VALUES ((SELECT id FROM supported_cities WHERE id = %s), %s, %s)",
-                (city_id, date_obj, response_json))
-            conn.commit()
-
-        weather_data = response
-
-    cursor.close()
-    conn.close()
-
-    # Replace keys in the response with translations if lang is not "EN"
-    if lang != "EN" and isinstance(weather_data, dict):
-        weather_data = translate_response(
-            weather_data, key_translations, value_translations)
 
     return weather_data
 
