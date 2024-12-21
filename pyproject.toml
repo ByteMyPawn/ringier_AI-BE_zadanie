@@ -24,6 +24,7 @@ pydantic = {version = "^1.10.2", extras = ["email"]}
 psycopg2-binary = "^2.9.6"
 timezonefinder = "^6.5.7"
 pytz = "^2024.2"
+pre-commit = "^4.0.1"
 
 
 [tool.poetry.group.dev.dependencies]
