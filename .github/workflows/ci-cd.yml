@@ -15,9 +15,6 @@ jobs:
 
     - name: Set up SSH
       run: |
-        # Install OpenSSH client (in case it's not installed)
-        sudo yum install -y openssh-clients
-
         # Create SSH directory
         mkdir -p ~/.ssh
 
