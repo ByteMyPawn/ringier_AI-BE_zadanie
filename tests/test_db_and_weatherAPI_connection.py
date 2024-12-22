@@ -2,8 +2,11 @@
 import os
 import sys
 from fastapi.testclient import TestClient
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from main import app  # Ensure this is the correct import for your FastAPI app
+# Setup: Add project root to `sys.path` and set working directory
+PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(PROJECT_ROOT)
+os.chdir(PROJECT_ROOT)
+from main import app
 import dotenv
 import json
 import httpx
@@ -75,7 +78,7 @@ def test_user_management():
     # Send a DELETE request to remove the new user using httpx
     response = httpx.request(
         method="DELETE",
-        url=f"http://{os.getenv('HOST_ADDRESS')}:8000/users",  # Ensure this URL is correct for your API
+        url=f"http://{os.getenv('PUBLIC_ADDRESS')}:8000/users",  # Ensure this URL is correct for your API
         headers={
             "Authorization": f"Bearer {superuser_token}",
             "Content-Type": "application/json",

@@ -12,7 +12,7 @@ from routes.content_generation import router as generate_article_router
 from routes.general import router as general_router
 
 dotenv.load_dotenv()
-host_address = os.getenv("HOST_ADDRESS")
+host_address = os.getenv("PUBLIC_ADDRESS")
 
 app = FastAPI()
 

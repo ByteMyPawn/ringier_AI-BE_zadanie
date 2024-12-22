@@ -4,7 +4,7 @@ import dotenv
 import os
 
 dotenv.load_dotenv()
-host_address = os.getenv("HOST_ADDRESS")
+host_address = os.getenv("PUBLIC_ADDRESS")
 
 router = APIRouter()
 
@@ -17,4 +17,4 @@ async def read_root():
 @router.get("/help", tags=["General"])
 async def help():
     return {
-        "message": f"For help, visit documentation page: {host_address}:8000/docs "}
+        "message": f"For help, visit documentation page: {host_address}:8000/docs"}
