@@ -1,3 +1,7 @@
-TBD: AWS nasadenie, CI/cd 
+TBD: AWS nasadenie manualne , potom automatizacia s ci cd (zrejme cez github nejaku sluzbu)
 
 test naporu
+
+github key now
+
+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
