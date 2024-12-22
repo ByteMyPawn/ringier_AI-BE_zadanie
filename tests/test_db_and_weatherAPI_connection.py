@@ -75,7 +75,7 @@ def test_user_management():
     # Send a DELETE request to remove the new user using httpx
     response = httpx.request(
         method="DELETE",
-        url="http://localhost:8000/users",  # Ensure this URL is correct for your API
+        url=f"http://{os.getenv('HOST_ADDRESS')}:8000/users",  # Ensure this URL is correct for your API
         headers={
             "Authorization": f"Bearer {superuser_token}",
             "Content-Type": "application/json",
