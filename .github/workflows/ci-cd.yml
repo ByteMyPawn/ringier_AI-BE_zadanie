@@ -1,0 +1,41 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest  # GitHub Actions runner (this is fine, we will SSH into the EC2 instance)
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up SSH
+      run: |
+        # Install OpenSSH client (in case it's not installed)
+        sudo yum install -y openssh-clients
+
+        # Create SSH directory
+        mkdir -p ~/.ssh
+
+        # Add SSH private key from GitHub Secrets
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+
+        # Add EC2 instance to known hosts to avoid SSH warnings
+        ssh-keyscan -H 52.29.10.231 >> ~/.ssh/known_hosts
+
+    - name: SSH into EC2 and rebuild Docker containers
+      run: |
+        # SSH into EC2 and run the docker-compose commands
+        ssh -i ~/.ssh/id_rsa ec2-user@52.29.10.231 <<EOF
+        # Navigate to the directory containing the Docker Compose file
+        cd /path/to/your/docker-compose/directory
+
+        # Rebuild the Docker containers and restart them
+        sudo docker-compose down   # Optional: Stop and remove existing containers
+        sudo docker-compose up --build -d   # Rebuild and start containers in detached mode
+        EOF
